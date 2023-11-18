@@ -1,5 +1,14 @@
 .PHONY: env install-deps up worker app init lint test
 
+include .env
+
+args := $(wordlist 2, 100, $(MAKECMDGOALS))
+ifndef args
+MESSAGE = "No such command (or you pass two or many targets to ). List of possible commands: make help"
+else
+MESSAGE = "Done"
+endif
+
 ## Create .env file from .env.example
 env:
 	@cp .env.example .env
@@ -15,6 +24,18 @@ install-deps:
 up:
 	(trap 'docker compose -f dev-docker-compose.yaml down' INT; \
 	docker compose -f dev-docker-compose.yaml up --build --force-recreate --remove-orphans)
+
+## Open database with docker-compose
+open_db:
+	docker exec -it desbordante-postgres psql -d $(POSTGRES_DB) -U $(POSTGRES_USER)
+
+## Create new revision file automatically
+revision:
+	poetry run alembic -c app/db/alembic.ini revision --autogenerate
+
+## Make migrations in database
+migrate:
+	poetry run alembic -c app/db/alembic.ini upgrade $(args)
 
 ## Run celery worker in watch mode
 worker:
@@ -34,6 +55,7 @@ lint:
 	poetry run ruff format --check ./tests/*.py ./app/*.py
 	poetry run black --check ./tests/*.py ./app/*.py
 	poetry run mypy --ignore-missing-imports ./app/*.py
+
 ## Run all tests in project
 test:
 	poetry run pytest --verbosity=2 --showlocals -log-level=DEBUG --cov=app --cov-report term
