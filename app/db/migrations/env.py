@@ -22,7 +22,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 section = config.config_ini_section
 settings = get_settings()
-config.set_section_option(section, "DB_URL", settings.PostgresDsn)
+config.set_section_option(section, "DB_URL", settings.postgres_dsn.unicode_string())
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
