@@ -10,7 +10,7 @@ args := $(wordlist 2, 100, $(MAKECMDGOALS))
 env:
 	@cp .env.example .env
 	@echo >> .env
-	@echo "SECRET_KEY=$$(openssl rand -hex 32)" >> .env
+	@echo "TOKEN_SECRET_KEY=$$(openssl rand -hex 32)" >> .env
 
 ## Install dependencies
 install-deps:
