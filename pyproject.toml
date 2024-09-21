@@ -26,6 +26,7 @@ python-multipart = "^0.0.9"
 sqlalchemy-mixins = "^2.0.5"
 aiofiles = "^23.2.1"
 cfgv = "^3.4.0"
+passlib = "^1.7.4"
 
 
 [tool.poetry.group.dev.dependencies]
