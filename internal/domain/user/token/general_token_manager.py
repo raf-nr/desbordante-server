@@ -36,6 +36,10 @@ class GeneralTokenManager[T: GeneralTokenPayload]:
         expire = datetime.now(timezone.utc) + time_expires_delta
         payload_dict["exp"] = expire
 
+        payload_dict = {
+            k: (str(v) if isinstance(v, UUID) else v) for k, v in payload_dict.items()
+        }
+
         token = jwt.encode(
             payload_dict,
             key=settings.token_secret_key,
@@ -54,10 +58,10 @@ class GeneralTokenManager[T: GeneralTokenPayload]:
             return self._payloadType(**payload)
         except jwt.exceptions.ExpiredSignatureError:
             raise ExpiredTokenSignatureException()
-        except jwt.exceptions.DecodeError as e:
-            raise DecodeTokenException(str(e))
         except jwt.exceptions.InvalidSignatureError:
             raise InvalidTokenSignatureException()
+        except jwt.exceptions.DecodeError as e:
+            raise DecodeTokenException(str(e))
         except jwt.exceptions.InvalidTokenError as e:
             raise InvalidTokenException(str(e))
         except ValidationError as e:
