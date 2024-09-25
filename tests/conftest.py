@@ -1,12 +1,11 @@
 import pytest
-from pytest_alembic import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 import logging
 
-from app.db import ORMBase
-from app.settings import settings
+from internal.infrastructure.data_storage.relational.model import ORMBaseModel
+from internal.infrastructure.data_storage import settings
 
 # https://stackoverflow.com/questions/61582142/test-pydantic-settings-in-fastapi
 # Maybe should be overriden by env vars for testing only
@@ -16,21 +15,30 @@ test_engine = create_engine(settings.postgres_dsn.unicode_string())
 
 
 @pytest.fixture(scope="session", autouse=True)
-def prepare_db():
+def prepare_postgres():
     logging.info("Setup database: %s", settings.postgres_dsn.unicode_string())
     if not database_exists(settings.postgres_dsn.unicode_string()):
         create_database(settings.postgres_dsn.unicode_string())
-    ORMBase.metadata.drop_all(bind=test_engine)
-    ORMBase.metadata.create_all(bind=test_engine)
+    ORMBaseModel.metadata.drop_all(bind=test_engine)
+    ORMBaseModel.metadata.create_all(bind=test_engine)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def session():
-    session = sessionmaker(test_engine, expire_on_commit=False)
-    yield session
+@pytest.fixture(scope="session")
+def postgres_context_maker():
+    return sessionmaker(test_engine, expire_on_commit=False)
 
 
-@pytest.fixture
-def alembic_config():
-    options = {"file": "app/settings/alembic.ini"}
-    return Config(config_options=options)
+@pytest.fixture(scope="function")
+def postgres_context(postgres_context_maker):
+    context = postgres_context_maker()
+
+    yield context
+
+    context.close()
+
+
+@pytest.fixture(autouse=True)
+def clean_tables(postgres_context):
+    for table in reversed(ORMBaseModel.metadata.sorted_tables):
+        postgres_context.execute(table.delete())
+    postgres_context.commit()
